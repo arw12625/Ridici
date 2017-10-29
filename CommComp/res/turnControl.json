@@ -1,0 +1,29 @@
+{
+	"controlMap": {
+		"FORWARD":{
+			"input":"L_STICK_UP",
+			"mult":1,
+			"deadband":0.05,
+		},
+		"TURN":{
+			"input":"L_STICK_LEFT",
+			"mult":1,
+			"deadband":0.05,
+		},
+                "SWEEP_IN":{
+                    "input":"BUTTON_A",
+                    "mult":1,
+                    "deadband":0.05,
+                },
+                "SWEEP_OUT":{
+                    "input":"BUTTON_B",
+                    "mult":1,
+                    "deadband":0.05,
+                },
+                "THROTTLE":{
+                    "input":"R_TRIGGER",
+                    "mult":0.5,
+                    "deadband":0.05,
+                }
+	}
+}

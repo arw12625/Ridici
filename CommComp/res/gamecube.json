@@ -1,0 +1,33 @@
+{
+	"_comment":"inputTransforms consists of multipliers such that the raw analog readings are normalized and a positive value corresponds to name of the input",
+	
+	"inputNames":{
+		"L_STICK_UP" : "Y Axis",
+		"L_STICK_LEFT" : "X Axis",
+		"R_STICK_UP" : "Z Axis",
+		"R_STICK_LEFT" : "Z Rotation",
+		"L_TRIGGER" : "X Rotation",
+		"R_TRIGGER" : "Y Rotation",
+		"BUTTON_X" : "Button 0",
+		"BUTTON_A" : "Button 1",
+		"BUTTON_B" : "Button 2",
+		"BUTTON_Y" : "Button 3",
+		"BUTTON_L2" : "Button 4",
+		"BUTTON_R2" : "Button 5",
+		"BUTTON_R1" : "Button 7",
+		"BUTTON_START" : "Button 9",
+		"BUTTON_UP" : "Button 12",
+		"BUTTON_DOWN" : "Button 13",
+		"BUTTON_LEFT" : "Button 14",
+		"BUTTON_RIGHT" : "Button 15"
+	},
+	
+	"inputTransforms":{
+		"L_STICK_UP" : -1,
+		"L_STICK_LEFT" : -1,
+		"R_STICK_UP" : -1,
+		"R_STICK_LEFT" : -1,
+		"L_TRIGGER" : 1,
+		"R_TRIGGER" : 1
+	}
+}
