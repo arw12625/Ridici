@@ -22,20 +22,22 @@
  * THE SOFTWARE.
  */
 
-package comm;
+package coding;
 
+import util.BlockOutput;
+import util.StreamInput;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 
 /**
  * A class that reads an InputStream of data encoded with consistent overhead
- * byte stuffing(COBS), decodes the data, and passes the result to a callback for 
- * parsing.
+ * byte stuffing(COBS), decodes the data, and passes the result as a block 
+ * to a callback for processing
  * 
  * @author Andrew_2
  */
-public class COBSReader {
+public class COBSReader implements StreamInput, BlockOutput {
 
     private InputStream in;
     private byte[] rawBuffer;
@@ -46,26 +48,43 @@ public class COBSReader {
     /**
      * the callback for when a message is unstuffed
      */
-    private BufferReaderCallback parser;
+    private BlockOutputCallback callback;
 
     /**
      * Construct a reader with the appropriate parameters
-     * @param in the InputStream to read from
      * @param bufferSize the size of the internal buffer
      * @param unstuffedLength the max size of an unstuffed message
-     * @param parser the callback for unstuffed messages
      */
-    public COBSReader(InputStream in, int bufferSize, int unstuffedLength, BufferReaderCallback parser) {
+    public COBSReader(int bufferSize, int unstuffedLength) {
 
-        this.in = in;
         this.bufferSize = bufferSize;
         this.unstuffedLength = unstuffedLength;
-        this.parser = parser;
         rawBuffer = new byte[bufferSize];
         buffer = ByteBuffer.wrap(rawBuffer);
         stuffed = ByteBuffer.allocate(unstuffedLength + 2);
         unstuffed = ByteBuffer.allocate(unstuffedLength);
     }
+    
+    /**
+     * Set the InputStream that stuffed data is read from
+     * 
+     * @param in The inputstream to be read
+     */
+    @Override
+    public void setInputStream(InputStream in) {
+        this.in = in;
+    }
+
+    /**
+     * Set the callback used when a COBS block is unstuffed
+     * 
+     * @param callback the callback used when a COBS block is unstuffed
+     */
+    @Override
+    public void setBlockAvailableCallback(BlockOutputCallback callback) {
+        this.callback = callback;
+    }
+    
 
     /**
      * Read data from the InputStream, decode, and pass to callback
@@ -98,7 +117,7 @@ public class COBSReader {
                         } else {
                             //Utility.printBytes(unstuffed);
                             
-                            parser.readBuffer(unstuffed);
+                            callback.onBlockOutput(unstuffed);
                         }
                     }
                     validMessage = true;
@@ -155,5 +174,6 @@ public class COBSReader {
 
         return true;
     }
+
 
 }

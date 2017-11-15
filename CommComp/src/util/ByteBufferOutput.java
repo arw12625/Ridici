@@ -22,7 +22,7 @@
  * THE SOFTWARE.
  */
 
-package comm;
+package util;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -160,7 +160,7 @@ public class ByteBufferOutput {
     /**
      * Notify the callback that data is available for reading
      */
-    synchronized public void flush() {
+    synchronized private void flush() {
         if(callback != null) {
             callback.available();
         }
@@ -196,7 +196,7 @@ public class ByteBufferOutput {
         
         @Override
         public void flush() {
-            ByteBufferOutputStream.this.flush();
+            ByteBufferOutput.this.flush();
         }
 
     }

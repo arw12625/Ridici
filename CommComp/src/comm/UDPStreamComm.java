@@ -23,19 +23,32 @@
  */
 package comm;
 
-import java.nio.ByteBuffer;
+import java.net.InetAddress;
 
 /**
- * A callback interface for when a buffer is available to be read
+ * An implementation of a StreamComm stream communication channel using UDP
+ * 
+ * Note this is accomplished by using a StreamOverBlockComm over a UDPBlockComm
  * 
  * @author Andrew_2
  */
-public interface BufferReaderCallback {
+public class UDPStreamComm extends StreamOverBlockComm {
+
+    private UDPStreamComm(UDPBlockComm comm) {
+        super(comm);
+    }
     
     /**
+     * Create a StreamComm using UDP over the given address and port
      * 
-     * @param msg the buffer to be read
+     * @param address The internet address to use with UDP
+     * @param port The port to use with UDP
+     * @return 
      */
-    void readBuffer(ByteBuffer msg);
-    
+    public static UDPStreamComm createUDPStreamComm(InetAddress address, int port) {
+        UDPBlockComm udpBlockComm = new UDPBlockComm(address, port);
+        UDPStreamComm udpStreamComm = new UDPStreamComm(udpBlockComm);
+        return udpStreamComm;
+    }
+
 }

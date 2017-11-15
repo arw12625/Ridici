@@ -21,19 +21,21 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package comm;
+package coding;
 
+import util.BlockInput;
+import util.StreamOutput;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 
 /**
- * A class that encodes messages with consistent overhead byte stuffing(COBS) 
- * and writes the encoded data to an OutputStream
+ * A class that encodes messages as a block with consistent overhead 
+ * byte stuffing(COBS) and writes the encoded data to an OutputStream
  *
  * @author Andrew_2
  */
-public class COBSWriter implements BufferWriter {
+public class COBSWriter implements BlockInput, StreamOutput {
 
     private OutputStream out;
     private byte[] rawStuffed;
@@ -41,32 +43,48 @@ public class COBSWriter implements BufferWriter {
 
     /**
      * Constructs a writer with the appropriate parameters
-     * 
-     * @param out the OutputStream to write stuffed messages to
+     *
      * @param unstuffedMessageLength the maximum unstuffed message length
      */
-    public COBSWriter(OutputStream out, int unstuffedMessageLength) {
-        this.out = out;
+    public COBSWriter(int unstuffedMessageLength) {
         rawStuffed = new byte[unstuffedMessageLength + 2];
         stuffed = ByteBuffer.wrap(rawStuffed);
     }
 
     /**
-     * Write a message to the writer
+     * Set the OutputStream where stuffed data is output
      * 
-     * @param unstuffed the message to be written
-     * @return whether the write was successful
-     * @throws IOException 
+     * @param out the OutputStream to write stuffed data to
      */
     @Override
-    public synchronized boolean write(ByteBuffer unstuffed) throws IOException {
-        stuffBytes(unstuffed, stuffed);
-        out.write(rawStuffed, 0, stuffed.remaining());
-        return true;
+    public void setOutputStream(OutputStream out) {
+        this.out = out;
+    }
+
+    /**
+     * Write a message to the writer
+     *
+     * @param unstuffed the message to be written
+     * @return whether the write was successful or not
+     */
+    @Override
+    public synchronized boolean writeBlock(ByteBuffer unstuffed) {
+        boolean success = stuffBytes(unstuffed, stuffed);
+        if (success) {
+            try {
+                out.write(rawStuffed, 0, stuffed.remaining());
+                out.flush();
+            } catch (IOException ex) {
+                success = false;
+                ex.printStackTrace();
+            }
+        }
+        return success;
     }
 
     /**
      * Stuff or enocde a message with COBS
+     *
      * @param source the buffer containing the message to be encoded
      * @param dest the buffer to write the result to
      * @return whether the encoding was successful

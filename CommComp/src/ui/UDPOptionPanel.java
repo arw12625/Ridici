@@ -23,8 +23,8 @@
  */
 package ui;
 
-import comm.Comm;
-import comm.UDPComm;
+import comm.StreamComm;
+import comm.UDPStreamComm;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
@@ -82,7 +82,7 @@ public class UDPOptionPanel extends CommOptionPanel {
      * @return the created communication channel
      */
     @Override
-    public Comm createComm() {
+    public StreamComm createComm() {
         InetAddress address = null;
         try {
              address = InetAddress.getByName(targetIPField.getText());
@@ -91,7 +91,7 @@ public class UDPOptionPanel extends CommOptionPanel {
         }
         int port = Integer.parseInt(targetPortField.getText());
         
-        UDPComm comm = new UDPComm(address, port);
+        UDPStreamComm comm = UDPStreamComm.createUDPStreamComm(address, port);
         return comm;
     }
 

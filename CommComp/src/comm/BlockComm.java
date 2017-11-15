@@ -23,23 +23,43 @@
  */
 package comm;
 
+import java.nio.ByteBuffer;
+
 /**
- * A callback for connections and disconnections of a Comm communication channel
+ * An abstraction of a communication channel that transfers data in blocks.
+ * A block of data is represented as a ByteBuffer
  * 
  * @author Andrew_2
  */
-public interface ConnectCallback {
+public interface BlockComm extends Comm {
     
     /**
-     * Callback for when the Comm is connected
-     * @param comm the connected Comm
+     * Set the callback for when a block of data is received through the 
+     * communication channel.
+     * 
+     * @param callback The callback for when a block of data is received
      */
-    public void onConnect(Comm comm);
+    public void setBlockReceivedCallback(BlockReceivedCallback callback);
     
     /**
-     * Callback for when the Comm is disconnected
-     * @param comm the disconnected Comm
+     * Write a block of data to the communication channel
+     * 
+     * @param block The block of data to be written
      */
-    public void onDisconnect(Comm comm);
+    public void writeBlock(ByteBuffer block);
+    
+    /**
+     * The callback to be used when blocks are received by the communication channel
+     */
+    public interface BlockReceivedCallback {
+        
+        /**
+         * Called when the specified block communication channel receives a block
+         * @param comm the block communication channel that received the block
+         * @param block the block received
+         */
+        public void onBlockReceived(BlockComm comm, ByteBuffer block);
+    
+    }
     
 }

@@ -23,28 +23,12 @@
  */
 package comm;
 
-import java.io.InputStream;
-import java.io.OutputStream;
-
 /**
- * An abstraction of a communication channel with input and output
- * through streams.
+ * An abstraction of a communication channel
  * 
  * @author Andrew_2
  */
 public interface Comm {
-    
-    /**
-     * Get the InputStream of data from the communication channel
-     * @return the InputStream of data
-     */
-    public InputStream getInputStream();
-    
-    /**
-     * Get the OutputStream of data to the communication channel
-     * @return the InputStream of data
-     */
-    public OutputStream getOutputStream();
     
     /**
      * Connect to the communication channel
@@ -64,5 +48,6 @@ public interface Comm {
      * @return whether the channel is connected or not
      */
     public boolean isConnected();
+    
     
 }

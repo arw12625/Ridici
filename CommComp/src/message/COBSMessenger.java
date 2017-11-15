@@ -21,23 +21,46 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package ui;
+package message;
 
+import coding.COBSReader;
+import coding.COBSWriter;
 import comm.StreamComm;
-import javax.swing.JPanel;
 
 /**
- * An abstraction of a graphic interface (JPanel) used for configuring 
- * a communication channel (Comm).
+ * An implementation of a Messenger using a StreamComm stream communication channel
+ * with data encoded and decoded using the consistent overhead byte stuffing (COBS)
+ * protocol
  * 
  * @author Andrew_2
  */
-public abstract class CommOptionPanel extends JPanel {
+public class COBSMessenger extends BlockToStreamMessenger {
+
+    private COBSReader reader;
+    private COBSWriter writer;
+    
+    public static final int maxMessageLen = 254;
+    public static final int readerBufferSize = 1024;
+    
+    private COBSMessenger(COBSReader reader, COBSWriter writer, StreamComm streamComm) {
+        super(writer, writer, reader, reader, streamComm);
+        this.reader = reader;
+        this.writer = writer;
+    }
     
     /**
-     * Create a communication channel using the graphic configuration
-     * @return the created communication channel
+     * Create a COBSMessenger over the given StreamComm
+     * 
+     * @param streamComm the StreamComm to be used by the created COBSMessenger
+     * @return 
      */
-    public abstract StreamComm createComm();
+    public static COBSMessenger createCOBSMessenger(StreamComm streamComm) {
+        
+        COBSReader reader = new COBSReader(readerBufferSize, maxMessageLen);
+        COBSWriter writer = new COBSWriter(maxMessageLen);
+        
+        return new COBSMessenger(reader, writer, streamComm);
+        
+    }
     
 }

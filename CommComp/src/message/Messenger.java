@@ -21,23 +21,53 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package ui;
+package message;
 
-import comm.StreamComm;
-import javax.swing.JPanel;
+import java.nio.ByteBuffer;
 
 /**
- * An abstraction of a graphic interface (JPanel) used for configuring 
- * a communication channel (Comm).
- * 
+ * This interface abstracts the functionality of sending and receiving messages
  * @author Andrew_2
  */
-public abstract class CommOptionPanel extends JPanel {
+public interface Messenger {
+
+    /**
+     * Send a message via this Messenger
+     * 
+     * @param msg
+     * @return whether the sending was successful
+     */
+    public boolean sendMessage(ByteBuffer msg);
     
     /**
-     * Create a communication channel using the graphic configuration
-     * @return the created communication channel
+     * Set the callback called when a message is received
+     * 
+     * @param callback 
      */
-    public abstract StreamComm createComm();
+    public void setMessageReceivedCallback(MessageReceivedCallback callback);
+    
+    /**
+     * Connect to the Messenger
+     * @return whether the connect was successful
+     */
+    public boolean connect();
+    
+    /**
+     * Disconnect from the Messenger
+     * @return whether the disconnect was successful
+     */
+    public boolean disconnect();
+    
+    /**
+     * Returns whether the Messenger is connected or not
+     * 
+     * @return whether the channel is connected or not
+     */
+    public boolean isConnected();
+    
+    
+    public interface MessageReceivedCallback {
+        public void onMessageReceived(Messenger messenger, ByteBuffer msg);
+    }
     
 }

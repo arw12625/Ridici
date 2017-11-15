@@ -23,36 +23,31 @@
  */
 package comm;
 
+import util.DefaultThread;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
 
 /**
- * An implementation of Comm using the UDP protocol over the web. Sends UDP to a
- * specified address and port, and listens on all local ports for UDP from that
- * address
- *
+ * An implementation of a BlockComm block communication channel over UDP
+ * 
  * @author Andrew_2
  */
-public class UDPComm implements Comm {
+public class UDPBlockComm implements BlockComm {
 
     private int port;
     private InetAddress address;
     private DatagramSocket socket;
 
-    private ByteBufferInput bin;
-    private ByteBufferOutput bout;
-
     private boolean connected;
 
+    private BlockReceivedCallback blockReceivedCallback;
     private DefaultThread readThread;
-    private DefaultThread writeThread;
 
     private int packetBufferSize;
 
@@ -66,7 +61,7 @@ public class UDPComm implements Comm {
     /**
      * Construct UDPComm with default parameters
      */
-    public UDPComm() {
+    public UDPBlockComm() {
         this(null, 0);
     }
 
@@ -76,7 +71,7 @@ public class UDPComm implements Comm {
      * @param address address to send UDP to
      * @param port port to send UDP to
      */
-    public UDPComm(InetAddress address, int port) {
+    public UDPBlockComm(InetAddress address, int port) {
 
         if (address == null) {
             try {
@@ -95,16 +90,11 @@ public class UDPComm implements Comm {
 
         try {
             socket = new DatagramSocket();
-            socket.setSoTimeout(1000);
+            socket.setSoTimeout(10000);
         } catch (SocketException ex) {
             System.err.println("Could not instantiate DatagramSocket");
         }
 
-        bin = new ByteBufferInput();
-        bout = new ByteBufferOutput();
-        bout.setCallback(() -> {
-            writeUDP();
-        });
     }
 
     /**
@@ -116,26 +106,6 @@ public class UDPComm implements Comm {
     public void setAddress(InetAddress address, int port) {
         this.address = address;
         this.port = port;
-    }
-
-    /**
-     * Get the InputStream of data from all local UDP ports
-     *
-     * @return the InputStream of data from all local UDP ports
-     */
-    @Override
-    public InputStream getInputStream() {
-        return bin.getInputStream();
-    }
-
-    /**
-     * Get the OutputStream of data to the UDP target
-     *
-     * @return the OutputStream of data to the UDP target
-     */
-    @Override
-    public OutputStream getOutputStream() {
-        return bout.getOutputStream();
     }
 
     /**
@@ -156,10 +126,7 @@ public class UDPComm implements Comm {
             readUDP();
         });
         readThread.start();
-        writeThread = new DefaultThread(() -> {
-            writeUDP();
-        });
-        writeThread.start();
+
         return true;
     }
 
@@ -171,9 +138,8 @@ public class UDPComm implements Comm {
     @Override
     public boolean disconnect() {
         readThread.stop();
-        writeThread.stop();
         socket.disconnect();
-        return false;
+        return true;
     }
 
     /**
@@ -193,11 +159,12 @@ public class UDPComm implements Comm {
         boolean invalid = false;
         byte[] rec = new byte[packetBufferSize];
         DatagramPacket receivePacket = new DatagramPacket(rec, rec.length);
+        
         /*
-        If no packet is received by the timeout, a SocketTimeoutException 
-        is thrown and then caught allowing the function to return. This is
-        necessary as otherwise socket will always be locked and cause the 
-        program to hang when trying to close the socket
+         If no packet is received by the timeout, a SocketTimeoutException 
+         is thrown and then caught allowing the function to return. This is
+         necessary as otherwise socket will always be locked and cause the 
+         program to hang when trying to close the socket
          */
         try {
             socket.receive(receivePacket);
@@ -209,23 +176,30 @@ public class UDPComm implements Comm {
         }
 
         if (receivePacket.getLength() != 0 && !invalid) {
-            byte[] tmp = new byte[receivePacket.getLength()];
-            System.arraycopy(receivePacket.getData(), receivePacket.getOffset(),
-                    tmp, 0, receivePacket.getLength());
+            ByteBuffer buf = ByteBuffer.wrap(rec);
+            buf.position(receivePacket.getOffset());
+            buf.limit(receivePacket.getLength() + buf.position());
+            blockReceivedCallback.onBlockReceived(this, buf.slice());
 
-            bin.write(tmp);
-            //bin.write(receivePacket.getData(), receivePacket.getOffset(),receivePacket.getLength());
         }
     }
 
     /**
-     * Internal function for writing data from stream into UDP packet
+     * Write a block of data as a single datagram packet to the UDP socket
+     * 
+     * @param block The block to be written
      */
-    private void writeUDP() {
-        if (bout.available() > 0) {
-            byte[] arr = new byte[packetBufferSize];
-            int len = bout.read(arr);
-            DatagramPacket sendPacket = new DatagramPacket(arr, len, address, port);
+    @Override
+    public void writeBlock(ByteBuffer block) {
+        if (!isConnected()) {
+            System.err.println("Cannot write to UDP when disconnected");
+        } else if(!block.hasRemaining()) {
+            System.err.println("Cannot write empty block to UDP");
+        } else {
+            
+            byte[] blockArray = new byte[block.remaining()];
+            block.get(blockArray);
+            DatagramPacket sendPacket = new DatagramPacket(blockArray, blockArray.length, address, port);
             try {
                 socket.send(sendPacket);
             } catch (IOException ex) {
@@ -235,49 +209,14 @@ public class UDPComm implements Comm {
     }
 
     /**
-     * A utility class for creating a generic thread from a repeatable task
-     * with a fixed loop time and functionality for stopping.
+     * Set the callback used when a block of data is received through UDP
+     * 
+     * @param callback the callback used
      */
-    private class DefaultThread implements Runnable {
-
-        private int loopTime;
-        private boolean running;
-        private Thread thread;
-        private Runnable reptask;
-
-        public static final int defaultLoopTime = 20;
-
-        private DefaultThread(Runnable reptask) {
-            this.loopTime = defaultLoopTime;
-            this.reptask = reptask;
-        }
-
-        public void start() {
-            running = true;
-            thread = new Thread(this);
-            thread.start();
-        }
-
-        public void stop() {
-            running = false;
-        }
-
-        @Override
-        public void run() {
-
-            long last = System.currentTimeMillis();
-            while (running) {
-                long time = System.currentTimeMillis();
-                if (time - last > loopTime) {
-
-                    reptask.run();
-
-                    last = time;
-                }
-                Thread.yield();
-            }
-        }
-
+    @Override
+    public void setBlockReceivedCallback(BlockReceivedCallback callback) {
+        this.blockReceivedCallback = callback;
     }
+
 
 }

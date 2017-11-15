@@ -21,23 +21,21 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package ui;
+package util;
 
-import comm.StreamComm;
-import javax.swing.JPanel;
+import java.io.OutputStream;
 
 /**
- * An abstraction of a graphic interface (JPanel) used for configuring 
- * a communication channel (Comm).
+ * An interface for outputting streams of data as an OutputStream
  * 
  * @author Andrew_2
  */
-public abstract class CommOptionPanel extends JPanel {
+public interface StreamOutput {
     
     /**
-     * Create a communication channel using the graphic configuration
-     * @return the created communication channel
+     * Set the OutputStream data is output to
+     * @param out the OutputStream data is output to
      */
-    public abstract StreamComm createComm();
+    public void setOutputStream(OutputStream out);
     
 }

@@ -23,14 +23,12 @@
  */
 package test;
 
-import comm.UDPComm;
+import comm.UDPStreamComm;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
@@ -49,7 +47,7 @@ public class UDPTest {
         UDPEchoServer echo = new UDPEchoServer(port);
         echo.start();
 
-        UDPComm comm = new UDPComm(InetAddress.getByName("192.168.4.1"), port);
+        UDPStreamComm comm = UDPStreamComm.createUDPStreamComm(InetAddress.getByName("192.168.4.1"), port);
         comm.connect();
 
         InputStream in = comm.getInputStream();

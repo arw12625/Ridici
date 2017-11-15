@@ -23,7 +23,7 @@
  */
 package ui;
 
-import comm.Comm;
+import comm.StreamComm;
 import comm.SerialComm;
 import static comm.SerialComm.defaultBaudrate;
 import java.awt.GridBagConstraints;
@@ -75,7 +75,7 @@ public class SerialOptionPanel extends CommOptionPanel {
      * @return the created serial communication channel
      */
     @Override
-    public Comm createComm() {
+    public StreamComm createComm() {
         SerialComm sc = new SerialComm(portNameField.getText(), Integer.parseInt(baudRateField.getText()));
         return sc;
     }

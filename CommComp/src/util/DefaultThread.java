@@ -21,23 +21,52 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package ui;
-
-import comm.StreamComm;
-import javax.swing.JPanel;
+package util;
 
 /**
- * An abstraction of a graphic interface (JPanel) used for configuring 
- * a communication channel (Comm).
- * 
+ * A utility class for creating a generic thread from a repeatable task with a
+ * fixed loop time and functionality for stopping.
+ *
  * @author Andrew_2
  */
-public abstract class CommOptionPanel extends JPanel {
-    
-    /**
-     * Create a communication channel using the graphic configuration
-     * @return the created communication channel
-     */
-    public abstract StreamComm createComm();
-    
+public class DefaultThread implements Runnable {
+
+    private int loopTime;
+    private boolean running;
+    private Thread thread;
+    private Runnable reptask;
+
+    public static final int defaultLoopTime = 20;
+
+    public DefaultThread(Runnable reptask) {
+        this.loopTime = defaultLoopTime;
+        this.reptask = reptask;
+    }
+
+    public void start() {
+        running = true;
+        thread = new Thread(this);
+        thread.start();
+    }
+
+    public void stop() {
+        running = false;
+    }
+
+    @Override
+    public void run() {
+
+        long last = System.currentTimeMillis();
+        while (running) {
+            long time = System.currentTimeMillis();
+            if (time - last > loopTime) {
+
+                reptask.run();
+
+                last = time;
+            }
+            Thread.yield();
+        }
+    }
+
 }

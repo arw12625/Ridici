@@ -23,8 +23,11 @@
  */
 package ui;
 
+import comm.BlockComm;
+import comm.BlockOverStreamComm;
 import comm.Comm;
-import comm.ConnectCallback;
+import comm.StreamComm;
+import comm.StreamOverBlockComm;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
@@ -35,32 +38,34 @@ import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JPanel;
 import javax.swing.Timer;
+import message.COBSMessenger;
+import message.Messenger;
+import message.TransparentBlockMessenger;
 
 /**
- * A graphic interface for a communication channel. Provdies functionality
- * for configuring, creating, connecting to, and disconnecting from a
- * communication channel.
- * 
- * Consists of a combo box for selection communication type, a connect/
- * disconnect button, and a panel containing the CommOptionPanel for the 
- * type of communication selected.
- * 
+ * A graphical interface for the configuration, creation, and connection of a 
+ * Messenger
+ *
  * @author Andrew_2
  */
-public class CommPanel extends JPanel {
-
+public class MessengerPanel extends JPanel {
+    
+    private Messenger messenger;
     private Comm comm;
-
     private boolean connected;
+    
+    private final ConnectUICallback ccb;
+    private final Timer connectUpdate;
+    
     private final JButton connectButton;
     private final JComboBox<CommType> commTypes;
     
-    private final ConnectCallback ccb;
+    private JPanel copWrapper;
+    private CommOptionPanel cop;
     
-    private final Timer connectUpdate;
-
+    private JComboBox<MessengerType> messengerTypes;
     /**
-     * All compatible communication types
+     * Supported communication types
      */
     private enum CommType {
 
@@ -79,16 +84,33 @@ public class CommPanel extends JPanel {
             return displayName;
         }
     }
-
-    private final JPanel copWrapper;
-    private CommOptionPanel cop;
-
+    
     /**
-     * Construct the comm panel and register the callback for connection status
+     * Supported Messenger types
+     */
+    private enum MessengerType {
+
+        TRANSPARENT_BLOCK("Transparent Block"),
+        TRANSPARENT_STREAM("Transparent Stream"),
+        COBS("COBS");
+
+        final String displayName;
+
+        MessengerType(String displayName) {
+            this.displayName = displayName;
+        }
+
+        @Override
+        public String toString() {
+            return displayName;
+        }
+    }
+    /**
+     * Construct the MessengerPanel and register the callback for connection status
      * 
      * @param ccb the callback for a change in connection status
      */
-    public CommPanel(ConnectCallback ccb) {
+    public MessengerPanel(ConnectUICallback ccb) {
         super();
         this.ccb = ccb;
         
@@ -125,8 +147,17 @@ public class CommPanel extends JPanel {
         c.gridx++;
         copWrapper = new JPanel();
         this.add(copWrapper, c);
-
+        //update UI to reflect comm type
         useCommType();
+
+        //Add Messenger configuration combo box
+        c.gridx = 0;
+        c.gridy++;
+        c.gridy++;
+        messengerTypes = new JComboBox();
+        messengerTypes.setModel(new DefaultComboBoxModel(MessengerType.values()));
+        messengerTypes.setSelectedItem(MessengerType.TRANSPARENT_BLOCK);
+        this.add(messengerTypes, c);
 
         connectUpdate = new Timer(100, new ActionListener() {
 
@@ -143,40 +174,72 @@ public class CommPanel extends JPanel {
     }
 
     /**
-     * Attempt to disconnect the comm channel.
+     * Attempt to disconnect the Messenger.
      * Changes internal connection status to disconnected and re-enables
-     * comm channel configuration. Notifies the connection callback
+     * Messenger configuration. Notifies the connection callback
      * 
      * @return if the disconnect was successful
      */
     private boolean disconnect() {
-        boolean status = comm.disconnect();
-        ccb.onDisconnect(comm);
+        boolean status = messenger.disconnect();
+        ccb.onUIDisconnect(messenger);
         comm = null;
         connectButton.setText("Connect");
         commTypes.setEnabled(true);
         cop.setEnabled(true);
+        messengerTypes.setEnabled(true);
         connected = false;
         return status;
     }
 
     /**
-     * Create a comm channel using the configuration and attempt to connect
+     * Create a Messenger using the configuration and attempt to connect
      * 
      * If the connection is successful, then this changes the internal 
-     * connection status to connected, disables comm channel configuration, and
+     * connection status to connected, disables Messenger configuration, and
      * notifies the connection callback.
      * 
      * @return if the connect was successful
      */
     private boolean connect() {
-        comm = cop.createComm();
-        comm.connect();
-        if (comm.isConnected()) {
-            ccb.onConnect(comm);
+        //Construct base communication channel. May have to wrap to agree
+        //with the messenger type
+        Comm baseComm = cop.createComm();
+        switch((MessengerType)messengerTypes.getSelectedItem()) {
+            case TRANSPARENT_BLOCK : {
+                BlockComm blockComm;
+                if(baseComm instanceof BlockComm) {
+                    blockComm = (BlockComm)baseComm;
+                } else if(baseComm instanceof StreamComm) {
+                    blockComm = new BlockOverStreamComm((StreamComm)baseComm);
+                } else {
+                    System.err.println("Communication type not supported");
+                    return false;
+                }
+                messenger = new TransparentBlockMessenger(blockComm);
+                break;
+            }
+            case COBS : {
+                StreamComm streamComm;
+                if(baseComm instanceof StreamComm) {
+                    streamComm = (StreamComm)baseComm;
+                } else if(baseComm instanceof BlockComm) {
+                    streamComm = new StreamOverBlockComm((BlockComm)baseComm);
+                } else {
+                    System.err.println("Communication type not supported");
+                    return false;
+                }
+                messenger = COBSMessenger.createCOBSMessenger(streamComm);
+                break;
+            }
+        }
+        
+        if (messenger.connect()) {
+            ccb.onUIConnect(messenger);
             connectButton.setText("Disconnect");
             commTypes.setEnabled(false);
             cop.setEnabled(false);
+            messengerTypes.setEnabled(false);
             connected = true;
         }
         return connected;
@@ -206,13 +269,25 @@ public class CommPanel extends JPanel {
         copWrapper.add(cop);
         revalidate();
     }
-    
-    /**
-     * Get the created Comm channel.
-     * @return the comm channel if connected, null otherwise
-     */
-    public Comm getComm() {
-        return comm;
-    }
+   
+   /**
+    * A callback for connections and disconnections of a Messenger
+    */
+   public interface ConnectUICallback {
+
+       /**
+        * Callback for when the Messenger is connected
+        * @param m the connected Messenger
+        */
+       public void onUIConnect(Messenger m);
+
+       /**
+        * Callback for when the Messenger is disconnected
+        * @param m the disconnected Messenger
+        */
+       public void onUIDisconnect(Messenger m);
+
+   }
+
     
 }

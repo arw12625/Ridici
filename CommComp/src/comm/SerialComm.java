@@ -36,12 +36,12 @@ import java.util.Enumeration;
 import java.util.HashSet;
 
 /**
- * An implementation of Comm utilizing a serial channel through Rxtx
+ * An implementation of a StreamComm utilizing a serial channel through Rxtx
  * Can be used for communication over USB
  * 
  * @author Andrew_2
  */
-public class SerialComm implements Comm {
+public class SerialComm implements StreamComm {
 
     private int baudrate, databits, stopbits, parity;
     private String portName;

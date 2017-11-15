@@ -21,23 +21,22 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package ui;
+package util;
 
-import comm.StreamComm;
-import javax.swing.JPanel;
+import java.nio.ByteBuffer;
 
 /**
- * An abstraction of a graphic interface (JPanel) used for configuring 
- * a communication channel (Comm).
+ * An interface for inputting blocks of data as a ByteBuffer
  * 
  * @author Andrew_2
  */
-public abstract class CommOptionPanel extends JPanel {
+public interface BlockInput {
     
     /**
-     * Create a communication channel using the graphic configuration
-     * @return the created communication channel
+     * Write the given block of data
+     * @param block the block to be written
+     * @return whether the write was successful
      */
-    public abstract StreamComm createComm();
+    public boolean writeBlock(ByteBuffer block);
     
 }

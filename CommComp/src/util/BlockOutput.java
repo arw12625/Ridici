@@ -21,24 +21,31 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package comm;
+package util;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 
 /**
- * An interface for writing from a ByteBuffer
- *
+ * An interface for outputting blocks of data as a ByteBuffer through a callback
+ * 
  * @author Andrew_2
  */
-public interface BufferWriter {
+public interface BlockOutput {
     
     /**
+     * Set the callback used when a block of data is output
      * 
-     * @param b the buffer to be written to the writer
-     * @return whether the write was successful
-     * @throws IOException 
+     * @param cb the callback to be used
      */
-    public boolean write(ByteBuffer b) throws IOException ;
+    public void setBlockAvailableCallback(BlockOutputCallback cb);
+    
+    /**
+     * Callback interface for when a block of data is available
+     */
+    public interface BlockOutputCallback {
+        
+        public void onBlockOutput(ByteBuffer block);
+        
+    }
     
 }
